@@ -1,8 +1,6 @@
-# matching/serializers.py
 from rest_framework import serializers
 from .models import User, Profile, Request, Proposal, Team, Game
 import re
-
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,77 +25,49 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
-        
-        # User 필드 업데이트
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        
-        # Profile 필드 업데이트
         if profile_data:
             profile = instance.profile
             for attr, value in profile_data.items():
                 setattr(profile, attr, value)
             profile.save()
-        
         return instance
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
     nickname = serializers.CharField(write_only=True, max_length=50, required=False)
-    favorite_team = serializers.CharField(write_only=True, max_length=50, required=False)
+    favorite_team = serializers.PrimaryKeyRelatedField(
+        queryset=Team.objects.all(), required=False, allow_null=True, write_only=True
+    )
     
     class Meta:
         model = User
         fields = ['name', 'phone', 'role', 'password', 'nickname', 'favorite_team']
     
-    def validate_phone(self, value):
-        phone_number = re.sub(r'[^0-9]', '', value)
-        if not (10 <= len(phone_number) <= 11) or not phone_number.startswith('01'):
-            raise serializers.ValidationError("올바른 휴대폰 번호 형식이 아닙니다.")
-        if User.objects.filter(phone=phone_number).exists():
-            raise serializers.ValidationError("이미 가입된 전화번호입니다.")
-        return phone_number
-    
-    def validate_role(self, value):
-        if value not in ['senior', 'helper']:
-            raise serializers.ValidationError("역할은 'senior' 또는 'helper'여야 합니다.")
-        return value
-    
     def create(self, validated_data):
+        favorite_team_obj = validated_data.pop('favorite_team', None)
         nickname = validated_data.pop('nickname', '')
-        favorite_team = validated_data.pop('favorite_team', '')
-        
-        user = User.objects.create_user(
-            phone=validated_data['phone'],
-            name=validated_data['name'],
-            role=validated_data['role'],
-            password=validated_data['password']
-        )
-        
-        # Profile 업데이트 (signals에서 자동 생성됨)
-        if nickname or favorite_team:
+        user = User.objects.create_user(**validated_data)
+        if nickname:
             user.profile.nickname = nickname
-            user.profile.favorite_team = favorite_team
-            user.profile.save()
-        
+        if favorite_team_obj:
+            user.profile.favorite_team = favorite_team_obj
+        user.profile.save()
         return user
 
 
-class LoginSerializer(serializers.Serializer):
-    phone = serializers.CharField()
-    password = serializers.CharField()
-
-
 class TeamSerializer(serializers.ModelSerializer):
-    id = serializers.CharField(source='string_id', read_only=True)
+    id = serializers.IntegerField(source='teamId', read_only=True)
     shortName = serializers.CharField(source='name', read_only=True)
     logoUrl = serializers.URLField(source='logo', read_only=True)
+    homeStadium = serializers.CharField(source='stadium', read_only=True)
     
     class Meta:
         model = Team
-        fields = ['id', 'name', 'shortName', 'logoUrl', 'stadium']
+        fields = ['id', 'name', 'shortName', 'logoUrl', 'homeStadium']
 
 
 class GameSerializer(serializers.ModelSerializer):
@@ -115,38 +85,30 @@ class RequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Request
         fields = [
-            'requestId', 'userId', 'gameDate', 'gameTime', 'homeTeam', 'awayTeam',
-            'stadium', 'seatType', 'accompanyType', 'additionalInfo', 'status',
+            'requestId', 'userId', 'game', 'accompanyType', 'additionalInfo', 'status',
             'numberOfTickets', 'createdAt', 'updatedAt'
         ]
         read_only_fields = ['requestId', 'userId', 'status', 'createdAt', 'updatedAt']
 
 
 class RequestCreateSerializer(serializers.Serializer):
-    teamId = serializers.CharField(max_length=50)
+    teamId = serializers.IntegerField()
     gameDate = serializers.DateField()
     numberOfTickets = serializers.IntegerField(min_value=1, max_value=4)
-    accompanyType = serializers.ChoiceField(choices=[('with', '함께 관람'), ('ticket_only', '티켓만 전달')], default='ticket_only')
-    additionalInfo = serializers.CharField(required=False, allow_blank=True)
 
 
-class RequestListSerializer(serializers.ModelSerializer):
-    """요청 목록을 위한 Serializer (game 필드 있을 때)"""
-    homeTeamName = serializers.CharField(source='game.homeTeam.name', read_only=True)
-    awayTeamName = serializers.CharField(source='game.awayTeam.name', read_only=True)
-    homeTeamLogo = serializers.URLField(source='game.homeTeam.logo', read_only=True)
-    awayTeamLogo = serializers.URLField(source='game.awayTeam.logo', read_only=True)
+class HelpRequestSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='requestId', read_only=True)
+    seniorFanName = serializers.CharField(source='userId.name', read_only=True)
+    teamName = serializers.CharField(source='game.homeTeam.name', read_only=True)
     gameDate = serializers.DateField(source='game.date', read_only=True)
-    gameTime = serializers.TimeField(source='game.time', read_only=True)
-    stadium = serializers.CharField(source='game.stadium', read_only=True)
+    gameTime = serializers.TimeField(source='game.time', read_only=True, format='%H:%M')
 
     class Meta:
         model = Request
         fields = [
-            'requestId', 'userId', 'gameDate', 'gameTime', 'stadium',
-            'seatType', 'numberOfTickets', 'accompanyType', 'status',
-            'homeTeamName', 'awayTeamName', 'homeTeamLogo', 'awayTeamLogo',
-            'createdAt'
+            'id', 'seniorFanName', 'teamName', 'gameDate', 'gameTime',
+            'numberOfTickets', 'status'
         ]
 
 
@@ -157,31 +119,62 @@ class ProposalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proposal
         fields = [
-            'proposalId', 'requestId', 'helperId', 'ticketInfo', 'message',
+            'proposalId', 'requestId', 'helperId', 'seatType', 'totalPrice', 'message',
             'status', 'createdAt', 'updatedAt'
         ]
-        read_only_fields = ['proposalId', 'requestId', 'helperId', 'status', 'createdAt', 'updatedAt']
 
 
 class ProposalCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proposal
-        fields = ['ticketInfo', 'message']
+        fields = ['seatType', 'totalPrice', 'message']
 
 
 class MyPageRequestSerializer(serializers.ModelSerializer):
-    proposalCount = serializers.SerializerMethodField()
-    
+    teamName = serializers.CharField(source='game.homeTeam.name', read_only=True)
+    matchDate = serializers.DateField(source='game.date', read_only=True)
+    helperName = serializers.SerializerMethodField()
+
     class Meta:
         model = Request
         fields = [
-            'requestId', 'gameDate', 'gameTime', 'homeTeam', 'awayTeam',
-            'stadium', 'status', 'proposalCount', 'createdAt'
+            'id', 'teamName', 'matchDate', 'numberOfTickets', 'status', 'helperName'
         ]
+        extra_kwargs = {'id': {'source': 'requestId'}}
     
-    def get_proposalCount(self, obj):
-        return obj.proposals.count()
+    def get_helperName(self, obj):
+        accepted_proposal = obj.proposals.filter(status='accepted').first()
+        return accepted_proposal.helperId.name if accepted_proposal else None
 
+
+class ProposedTicketDetailsSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='requestId', read_only=True)
+    seniorFanName = serializers.CharField(source='userId.name', read_only=True)
+    teamName = serializers.CharField(source='game.homeTeam.name', read_only=True)
+    matchDate = serializers.DateField(source='game.date', read_only=True)
+    helperName = serializers.SerializerMethodField()
+    seatType = serializers.SerializerMethodField()
+    totalPrice = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Request
+        fields = ['id', 'seniorFanName', 'teamName', 'matchDate', 'numberOfTickets', 'seatType', 'totalPrice', 'helperName']
+
+    def get_proposal(self, obj):
+        # 최신 제안을 가져오도록 정렬 로직 추가
+        return obj.proposals.filter(status='pending').order_by('-createdAt').first()
+
+    def get_helperName(self, obj):
+        proposal = self.get_proposal(obj)
+        return proposal.helperId.name if proposal else "헬퍼 정보 없음"
+
+    def get_seatType(self, obj):
+        proposal = self.get_proposal(obj)
+        return proposal.seatType if proposal else "좌석 정보 없음"
+
+    def get_totalPrice(self, obj):
+        proposal = self.get_proposal(obj)
+        return proposal.totalPrice if proposal else "가격 정보 없음"
 
 class MyPageProposalSerializer(serializers.ModelSerializer):
     request = RequestSerializer(source='requestId', read_only=True)
@@ -189,6 +182,6 @@ class MyPageProposalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proposal
         fields = [
-            'proposalId', 'request', 'ticketInfo', 'message',
+            'proposalId', 'request', 'seatType', 'totalPrice', 'message',
             'status', 'createdAt', 'updatedAt'
         ]
