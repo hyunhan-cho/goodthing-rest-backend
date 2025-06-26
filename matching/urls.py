@@ -10,7 +10,7 @@ urlpatterns = [
     path('auth/user/', views.UserProfileView.as_view(), name='user_profile'),
     
     # KBO 팀 및 경기 정보
-    path('kbo-teams/', views.TeamListView.as_view(), name='kbo_team_list'),
+    path('teams/', views.TeamListView.as_view(), name='kbo_team_list'),
     path('games/', views.GameListView.as_view(), name='game_list'),
     
     # 도움 요청 (시니어 -> 헬퍼)
