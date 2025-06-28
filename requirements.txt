@@ -4,8 +4,11 @@ djangorestframework>=3.14.0
 djangorestframework-simplejwt>=5.2.0
 django-cors-headers>=4.0.0
 dj-rest-auth>=4.0.0
-python-decouple>=3.8  # 환경변수 관리
+python-dotenv>=1.0.0  # 환경변수 관리
+dj-database-url>=2.0.0  # 데이터베이스 URL 파싱
 Pillow>=10.0.0  # 이미지 처리용 (프로필/로고 등)
+gunicorn>=21.0.0  # WSGI 서버 (배포용)
+whitenoise>=6.5.0  # 정적 파일 서빙
 
 # 개발용 의존성 (선택사항)
 # pytest-django>=4.5.0
