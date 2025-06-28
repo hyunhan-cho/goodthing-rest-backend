@@ -32,14 +32,16 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Security settings for production
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    # SSL 리다이렉션은 HTTPS가 준비된 후에만 활성화 (개발 단계에서는 주석 처리)
+    # SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    # HSTS 설정들은 HTTPS 완전 설정 후 활성화
+    # SECURE_HSTS_SECONDS = 31536000
+    # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
-    X_FRAME_OPTIONS = 'DENY'
+    X_FRAME_OPTIONS = 'SAMEORIGIN'  # DENY에서 SAMEORIGIN으로 완화
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # Custom User Model
@@ -81,8 +83,23 @@ MIDDLEWARE = [
 
 # CORS 설정 (환경 변수에서 읽기)
 cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000')
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',') if origin.strip()]
+
+# 개발/테스트 단계에서는 모든 출처 허용 (프론트엔드 도메인이 정해지면 수정)
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF 설정
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://*.cloudtype.app',
+]
+
+# 환경 변수로 CSRF 추가 도메인 설정 가능
+csrf_additional = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if csrf_additional:
+    CSRF_TRUSTED_ORIGINS.extend([domain.strip() for domain in csrf_additional.split(',') if domain.strip()])
 
 
 SITE_ID = 1
