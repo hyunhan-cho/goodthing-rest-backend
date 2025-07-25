@@ -72,6 +72,31 @@ class GameListView(generics.ListAPIView):
     serializer_class = GameSerializer
     permission_classes = [AllowAny]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # 쿼리 파라미터에서 gameId, date, team을 가져옵니다.
+        game_id = self.request.query_params.get('gameId', None)
+        date = self.request.query_params.get('date', None)
+        team_id = self.request.query_params.get('team', None) # 'team' 파라미터는 팀의 ID로 가정
+
+        # gameId로 필터링 (단일 경기 조회 시)
+        if game_id:
+            # gameId는 일반적으로 PK이므로 get()을 사용하여 단일 객체를 가져오는 것이 더 명확할 수 있으나,
+            # list view의 get_queryset에서는 filter()를 유지하는 것이 일반적입니다.
+            queryset = queryset.filter(gameId=game_id)
+            # 단일 객체만 원한다면 .first()를 여기서 호출하거나, 프론트엔드에서 [0]을 사용하는 방식 유지
+            
+        # 날짜로 필터링 (특정 날짜의 모든 경기 조회 시)
+        if date:
+            queryset = queryset.filter(date=date)
+
+        # 팀 ID로 필터링 (특정 팀이 홈 또는 어웨이인 경기 조회 시)
+        if team_id:
+            queryset = queryset.filter(Q(homeTeam__teamId=team_id) | Q(awayTeam__teamId=team_id))
+
+        return queryset
+
 class RequestCreateView(generics.CreateAPIView):
     serializer_class = RequestCreateSerializer
     permission_classes = [IsSeniorUser]
