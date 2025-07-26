@@ -95,17 +95,19 @@ class TeamSerializer(serializers.ModelSerializer):
     """
     Team 모델 Serializer (프론트 요구에 맞춰 필드명 변경)
     - teamId → id
-    - name → shortName
+    - name → shortName (별칭), name(실제 이름)
     - stadium → homeStadium
-    - logo는 프론트에서 안쓴다고 해서 제거
+    - logo → logoUrl
     """
     id = serializers.IntegerField(source='teamId', read_only=True)
+    name = serializers.CharField(source='name', read_only=True)
     shortName = serializers.CharField(source='name', read_only=True)
+    logoUrl = serializers.CharField(source='logo', read_only=True)
     homeStadium = serializers.CharField(source='stadium', read_only=True)
 
     class Meta:
         model = Team
-        fields = ['id', 'shortName', 'homeStadium']
+        fields = ['id', 'name', 'shortName', 'logoUrl', 'homeStadium']
 
 
 class GameSerializer(serializers.ModelSerializer):
