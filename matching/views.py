@@ -18,6 +18,7 @@ from .permissions import (
     IsSeniorUser, IsHelperUser, IsOwnerOrReadOnly,
     IsRequestOwnerOrHelper, IsProposalOwnerOrRequestOwner
 )
+from matching import serializers
 
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
