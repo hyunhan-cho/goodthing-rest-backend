@@ -48,7 +48,8 @@ def login_view(request):
         access_token['mileagePoints'] = user.mileagePoints
 
         response = Response({
-            'access': str(access_token)
+            'access': str(access_token),
+            'refresh': str(refresh)  # JSON에도 refresh 토큰 포함
         }, status=status.HTTP_200_OK)
 
         response.set_cookie(

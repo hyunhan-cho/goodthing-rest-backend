@@ -73,13 +73,13 @@ MIDDLEWARE = [
 # --- CORS & CSRF ---
 cors_origins = os.getenv(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000,http://127.0.0.1:3000'
+    'http://localhost:3000,http://127.0.0.1:3000,https://2025-challkathon-goodthing-fe-y82y.vercel.app'
 )
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',') if origin.strip()]
-
-# Vercel 프론트 추가
-if 'https://2025-challkathon-goodthing-fe-y82y.vercel.app' not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append('https://2025-challkathon-goodthing-fe-y82y.vercel.app')
+CORS_ALLOWED_ORIGINS = []
+for origin in cors_origins.split(','):
+    o = origin.strip()
+    if o and o not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(o)
 
 # 전체 허용 ❌
 CORS_ALLOW_ALL_ORIGINS = False
