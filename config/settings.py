@@ -79,7 +79,7 @@ CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',') if 
 
 # Vercel 프론트 추가
 if 'https://2025-challkathon-goodthing-fe-y82y-omkfvclqn.vercel.app' not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append('https://2025-challkathon-goodthing-fe-y82y-omkfvclqn.vercel.app/')
+    CORS_ALLOWED_ORIGINS.append('https://2025-challkathon-goodthing-fe-y82y-omkfvclqn.vercel.app')
 
 # 전체 허용 ❌
 CORS_ALLOW_ALL_ORIGINS = False
@@ -89,7 +89,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://*.cloudtype.app',
-    'https://2025-challkathon-goodthing-fe-y82y-omkfvclqn.vercel.app/',
+    'https://2025-challkathon-goodthing-fe-y82y-omkfvclqn.vercel.app',
 ]
 
 csrf_additional = os.getenv('CSRF_TRUSTED_ORIGINS', '')
@@ -174,6 +174,8 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_HTTPONLY': True,   # ✅ RefreshToken HttpOnly 쿠키 사용
     'USER_DETAILS_SERIALIZER': 'matching.serializers.UserProfileSerializer',
+    'JWT_AUTH_SAMESITE': 'None',
+    'JWT_AUTH_SECURE': True,
 }
 
 SIMPLE_JWT = {
