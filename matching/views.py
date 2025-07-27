@@ -47,15 +47,41 @@ def login_view(request):
         access_token['name'] = user.name
         access_token['mileagePoints'] = user.mileagePoints
 
-        return Response({
-            'access': str(access_token),
-            'refresh': str(refresh),
+        response = Response({
+            'access': str(access_token)
         }, status=status.HTTP_200_OK)
+
+        response.set_cookie(
+            key='refresh_token',
+            value=str(refresh),
+            httponly=True,
+            secure=True,
+            samesite='None',
+            max_age=60 * 60 * 24 * 7
+        )
+
+        return response
 
     except User.DoesNotExist:
         return Response({'detail': '존재하지 않는 사용자입니다.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'detail': f'서버 오류: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def refresh_token_view(request):
+    try:
+        refresh_token = request.COOKIES.get('refresh_token')
+        if refresh_token is None:
+            return Response({'detail': 'refresh token unavailable'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        refresh = RefreshToken(refresh_token)
+        new_access = refresh.access_token
+
+        return Response({'access': str(new_access)}, status=status.HTTP_200_OK)
+
+    except Exception:
+        return Response({'detail': 'refresh token invalid'}, status=status.HTTP_401_UNAUTHORIZED)
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
@@ -75,24 +101,14 @@ class GameListView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        
-        # 쿼리 파라미터에서 gameId, date, team을 가져옵니다.
         game_id = self.request.query_params.get('gameId', None)
         date = self.request.query_params.get('date', None)
-        team_id = self.request.query_params.get('team', None) # 'team' 파라미터는 팀의 ID로 가정
+        team_id = self.request.query_params.get('team', None)
 
-        # gameId로 필터링 (단일 경기 조회 시)
         if game_id:
-            # gameId는 일반적으로 PK이므로 get()을 사용하여 단일 객체를 가져오는 것이 더 명확할 수 있으나,
-            # list view의 get_queryset에서는 filter()를 유지하는 것이 일반적입니다.
             queryset = queryset.filter(gameId=game_id)
-            # 단일 객체만 원한다면 .first()를 여기서 호출하거나, 프론트엔드에서 [0]을 사용하는 방식 유지
-            
-        # 날짜로 필터링 (특정 날짜의 모든 경기 조회 시)
         if date:
             queryset = queryset.filter(date=date)
-
-        # 팀 ID로 필터링 (특정 팀이 홈 또는 어웨이인 경기 조회 시)
         if team_id:
             queryset = queryset.filter(Q(homeTeam__teamId=team_id) | Q(awayTeam__teamId=team_id))
 
@@ -235,7 +251,7 @@ def my_stats(request):
             'totalRequests': Request.objects.filter(userId=user).count(),
             'completedRequests': Request.objects.filter(userId=user, status='COMPLETED').count(),
         }
-    else: # helper
+    else:
         stats = {
             'totalSessionsCompleted': Proposal.objects.filter(helperId=user, status='accepted', requestId__status='COMPLETED').count(),
             'mileagePoints': user.mileagePoints
