@@ -84,6 +84,7 @@ MIDDLEWARE = [
 # CORS 설정 (환경 변수에서 읽기)
 cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000')
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',') if origin.strip()]
+cors_origins += ',https://2025-challkathon-goodthing-fe-y82y.vercel.app'
 
 # 개발/테스트 단계에서는 모든 출처 허용 (프론트엔드 도메인이 정해지면 수정)
 CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
@@ -94,6 +95,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://*.cloudtype.app',
+    'https://2025-challkathon-goodthing-fe-y82y.vercel.app',
 ]
 
 # 환경 변수로 CSRF 추가 도메인 설정 가능
