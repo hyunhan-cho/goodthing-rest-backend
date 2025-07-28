@@ -28,6 +28,10 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'SAMEORIGIN'
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
+# 개발/테스트용: 모든 호스트 허용 및 디버그 모드 활성화
+DEBUG = True
+ALLOWED_HOSTS = ['*']
+
 # --- Secure Cookies / SameSite ---
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
