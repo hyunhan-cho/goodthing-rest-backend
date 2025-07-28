@@ -100,7 +100,7 @@ class TeamSerializer(serializers.ModelSerializer):
     - logo → logoUrl
     """
     id = serializers.IntegerField(source='teamId', read_only=True)
-    name = serializers.CharField(read_only=True)
+    #name = serializers.CharField(read_only=True)
     shortName = serializers.CharField(source='name', read_only=True)
     logoUrl = serializers.CharField(source='logo', read_only=True)
     homeStadium = serializers.CharField(source='stadium', read_only=True)
